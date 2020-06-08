@@ -50,7 +50,12 @@ def Mulitple_Training_Dataset():
     dataset = ConcatDataset(all_train)
     return dataset
 
-
+def data_load(batch_size=1):
+    training_dataset = Mulitple_Training_Dataset()
+    testing_dataset = StereokDataset(Training=False)
+    train_loader = DataLoader(training_dataset, batch_size=batch_size, shuffle= True)
+    test_loader = DataLoader(testing_dataset, batch_size=1, shuffle=False)
+    return train_loader,test_loader
 
 if __name__ == "__main__":
     training_dataset = Mulitple_Training_Dataset()

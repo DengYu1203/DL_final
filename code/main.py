@@ -1,11 +1,14 @@
-from Dataset import Mulitple_Training_Dataset
+from Dataset import Mulitple_Training_Dataset, data_load
 
+batch = 100
 
-training_dataset = Mulitple_Training_Dataset()
-print('--------')
-print(training_dataset)
-print(len(training_dataset))
-
+def load_data(batch_size):
+    train_loader,test_loader = data_load(batch_size)
+    print("Loading Data")
+    print("Train \tdata num:{} (in batch size={})".format(len(train_loader),batch_size))
+    print("Test \tdata num:{}".format(len(test_loader)))
+    return train_loader,test_loader
 
 if __name__ == "__main__":
-    pass
+    train_loader,test_loader = load_data(batch_size=batch)
+    

@@ -57,6 +57,3 @@ if __name__ == "__main__":
 
 			loss_f += loss.float()
 			prediction_f = softmaxed_tensor.float()
-
-		delta = time.time() - t_start
-		is_better = loss_f < prev_loss

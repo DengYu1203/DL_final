@@ -32,9 +32,9 @@ class StereokDataset(Dataset):
             bg_mask = Image.open( (self.path+ 'bg_mask/'+ self.filenames[index]).replace('jpg', 'png') ).convert('L')
             bg_mask = self.transform(bg_mask)
         
-            return camera_5, camera_6, disparity, fg_mask, bg_mask
+            return {'camera_5':camera_5, 'camera_6':camera_6, 'disparity':disparity,'fg_mask':fg_mask,'bg_mask':bg_mask}
         else:
-            return camera_5, camera_6
+            return {'camera_5':camera_5, 'camera_6':camera_6}
 
     def __len__(self):
         

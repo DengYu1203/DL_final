@@ -1,18 +1,20 @@
 from Dataset import Mulitple_Training_Dataset
+from Dataset import StereokDataset
 from torch.utils.data import DataLoader
 import torchvision.models as models
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from model import SegNet
+#from model import SegNet
+import matplotlib.pyplot as plt
 import time
 import numpy as np
+from tqdm import tqdm
+from segnet import SegNet
 
-NUM_EPOCHS = 6000
-
+NUM_EPOCHS = 100
 LEARNING_RATE = 1e-6
-MOMENTUM = 0.9
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 
 def Ground_truth_process(tensor):
 	fg_mask = tensor.numpy()
@@ -27,33 +29,48 @@ def Ground_truth_process(tensor):
 if __name__ == "__main__":
 
 	training_dataset = Mulitple_Training_Dataset()
-	training_loader = DataLoader(training_dataset, batch_size=1, shuffle= True)
+	training_loader = DataLoader(training_dataset, batch_size=BATCH_SIZE, shuffle= True)
+	testing_dataset = StereokDataset(Training=False)
+	testing_loader = DataLoader(testing_dataset, batch_size=1, shuffle= False)
 	model = SegNet(3,2).cuda()
-	for epoch in range(6000):
-		loss_f = 0
+
+	loss_sum = 0  #count loss
+	for epoch in range(NUM_EPOCHS):
 		t_start = time.time()
-		for i, batch in enumerate(training_loader):
-			print(i)
+		i = 0
+		count_batch = 0    #count loss
+		x_axis_list = []   #graph
+		y_axis_list = []   #graph
+		print('epoch = {}'.format(epoch+1))
+		for i, batch in enumerate(tqdm(training_loader)):
+			###load data ###
 			input_tensor = torch.autograd.Variable(batch['camera_5']).cuda()
 			target_tensor = torch.autograd.Variable(batch['fg_mask']).cuda()
-			#target_tensor = torch.autograd.Variable(Ground_truth_process(batch['fg_mask']),requires_grad=True).cuda()
-			#with torch.no_grad():
-			#print('input_tensor = {}'.format(input_tensor))
-			#print('target_tensor = {}'.format(target_tensor))
-
+			################
+			
 			predicted_tensor, softmaxed_tensor = model(input_tensor)
 			criterion = torch.nn.CrossEntropyLoss().cuda()
 			#criterion = nn.BCEWithLogitsLoss().cuda()
 			optimizer = torch.optim.Adam(model.parameters(),
 											lr=LEARNING_RATE)
 			optimizer.zero_grad()
-			#print('predicted_tensor = {}'.format(predicted_tensor))
-			#print('target_tensor = {}'.format(target_tensor))
 			loss = criterion(predicted_tensor, target_tensor)
-			print('loss = {}'.format(loss))
+			#print('loss = {}'.format(loss))
 			loss.backward()
 			optimizer.step()
 
 
-			loss_f += loss.float()
-			prediction_f = softmaxed_tensor.float()
+			###just for count loss and graph ###
+			loss_sum = loss_sum + loss
+			average_loss = loss_sum/i+1
+			count_batch+=1
+			x_axis_list.append(count_batch)
+			y_axis_list.append(loss)
+			#####################################
+
+
+		plt.plot(x_axis_list,y_axis_list)
+		plt.ylabel("loss")
+		plt.xlabel("mini_batch_number")
+		plt.savefig('epoch_{}.png'.format(epoch+1))
+		print('loss = {}'.format(loss))

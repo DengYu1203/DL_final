@@ -111,7 +111,7 @@ if __name__ == "__main__":
     print(testing_dataset)
     print(len(testing_dataset))
 
-    training_loader = DataLoader(training_dataset, batch_size=16, shuffle= True)
+    training_loader = DataLoader(training_dataset, batch_size=1, shuffle= True)
     print('--------')
     for idx,(c5, c6, dis, fg, bg) in enumerate(training_loader):
         print(idx)

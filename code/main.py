@@ -34,11 +34,16 @@ if __name__ == "__main__":
 		t_start = time.time()
 		for i, batch in enumerate(training_loader):
 			print(i)
-			input_tensor = torch.autograd.Variable(batch['camera_5'],requires_grad=True).cuda()
-			target_tensor = torch.autograd.Variable(Ground_truth_process(batch['fg_mask']),requires_grad=True).cuda()
-			with torch.no_grad():
-				predicted_tensor, softmaxed_tensor = model(input_tensor)
-			criterion = nn.BCEWithLogitsLoss().cuda()
+			input_tensor = torch.autograd.Variable(batch['camera_5']).cuda()
+			target_tensor = torch.autograd.Variable(batch['fg_mask']).cuda()
+			#target_tensor = torch.autograd.Variable(Ground_truth_process(batch['fg_mask']),requires_grad=True).cuda()
+			#with torch.no_grad():
+			print('input_tensor = {}'.format(input_tensor))
+			print('target_tensor = {}'.format(target_tensor))
+
+			predicted_tensor, softmaxed_tensor = model(input_tensor)
+			criterion = torch.nn.CrossEntropyLoss().cuda()
+			#criterion = nn.BCEWithLogitsLoss().cuda()
 			optimizer = torch.optim.Adam(model.parameters(),
 											lr=LEARNING_RATE)
 			optimizer.zero_grad()

@@ -38,8 +38,8 @@ if __name__ == "__main__":
 			target_tensor = torch.autograd.Variable(batch['fg_mask']).cuda()
 			#target_tensor = torch.autograd.Variable(Ground_truth_process(batch['fg_mask']),requires_grad=True).cuda()
 			#with torch.no_grad():
-			print('input_tensor = {}'.format(input_tensor))
-			print('target_tensor = {}'.format(target_tensor))
+			#print('input_tensor = {}'.format(input_tensor))
+			#print('target_tensor = {}'.format(target_tensor))
 
 			predicted_tensor, softmaxed_tensor = model(input_tensor)
 			criterion = torch.nn.CrossEntropyLoss().cuda()
@@ -47,6 +47,8 @@ if __name__ == "__main__":
 			optimizer = torch.optim.Adam(model.parameters(),
 											lr=LEARNING_RATE)
 			optimizer.zero_grad()
+			#print('predicted_tensor = {}'.format(predicted_tensor))
+			#print('target_tensor = {}'.format(target_tensor))
 			loss = criterion(predicted_tensor, target_tensor)
 			print('loss = {}'.format(loss))
 			loss.backward()

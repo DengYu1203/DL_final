@@ -109,7 +109,7 @@ def train_model(training_loader):
             count_batch += 1
         average_loss = loss_sum / count_batch
         learning_rate_list.append(average_loss)
-        print('{} epoch: loss = {}'.format(epoch,average_loss))
+        print('{} epoch: loss = {}'.format(epoch+1,average_loss))
         plot_learning_curve(epoch+1)
         save_model(model)
     return model

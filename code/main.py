@@ -16,7 +16,8 @@ from segnet import SegNet
 import os
 
 # mode
-train_flag = True   # True for train model, false for load the model
+train_flag = True   # True for train model, false for load the model to test
+train_from_last_model = False   # True for train a model from the exist file, false for train a new model
 
 # Training parameter
 NUM_EPOCHS = 100
@@ -79,7 +80,10 @@ def load_data():
     return training_loader, testing_loader
 
 def train_model(training_loader):
-    model = SegNet(3,3).cuda()
+    if train_from_last_model:
+        model = load_model()
+    else:
+        model = SegNet(3,3).cuda()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     for epoch in range(NUM_EPOCHS):
         t_start = time.time()
@@ -107,6 +111,7 @@ def train_model(training_loader):
 
             loss_sum += loss
             count_batch += 1
+        tqdm.close()
         average_loss = loss_sum / count_batch
         learning_rate_list.append(average_loss)
         print('{} epoch: loss = {}'.format(epoch+1,average_loss))
@@ -125,6 +130,7 @@ def plot_learning_curve(epoch):
     save_path = os.path.join(curve_dir,'learning_curve.png')
     fig.savefig(save_path)
     plt.clf()
+    plt.close(fig)
     # plt.plot(x_axis_list,y_axis_list)
     # plt.ylabel("loss")
     # plt.xlabel("mini_batch_number")
@@ -151,6 +157,7 @@ def show_img(img, index, filename):
     plt.axis("off")
     fig.savefig(save_path,dpi=fig.dpi,bbox_inches='tight',pad_inches=0.0)
     plt.clf()
+    plt.close(fig)
     return
 
 if __name__ == '__main__':

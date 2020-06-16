@@ -87,7 +87,7 @@ class StereokDataset(Dataset):
     def load_mask(self, path=None):
         raw_image = Image.open(path).convert('L')
         raw_image = self.gray_transform(raw_image)
-        raw_image = raw_image.resize((img_size_h, img_size_w))
+        raw_image = np.transpose(raw_image.resize((img_size_w, img_size_h)), (1,0))
         imx_t = np.array(raw_image) /255
         # border
         #imx_t[imx_t==255] = len(self.filenames)

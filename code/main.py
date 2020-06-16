@@ -14,10 +14,11 @@ import numpy as np
 from tqdm import tqdm
 from segnet import SegNet
 import os
+import json
 
 # mode
 train_flag = True   # True for train model, false for load the model to test
-train_from_last_model = True   # True for train a model from the exist file, false for train a new model
+train_from_last_model = False   # True for train a model from the exist file, false for train a new model
 
 # Training parameter
 NUM_EPOCHS = 100
@@ -54,6 +55,10 @@ test_data_dir = os.path.join(output_dir,'test')
 if not os.path.exists(test_data_dir):
     os.makedirs(test_data_dir)
 
+info_data_dir = os.path.join(output_dir,'info')
+if not os.path.exists(info_data_dir):
+    os.makedirs(info_data_dir)
+
 def Ground_truth_process(tensor):
     fg_mask = tensor.numpy()
     car_channel = fg_mask
@@ -78,14 +83,37 @@ def load_model():
 
 def load_data():
     training_dataset = Mulitple_Training_Dataset()
-    training_loader = DataLoader(training_dataset, batch_size=BATCH_SIZE, shuffle= True, num_workers=2,pin_memory=torch.cuda.is_available())
+    training_loader = DataLoader(training_dataset, batch_size=BATCH_SIZE, shuffle= True, num_workers=1,pin_memory=torch.cuda.is_available())
     testing_dataset = StereokDataset(Training=False)
     testing_loader = DataLoader(testing_dataset, batch_size=1, shuffle= False)
     return training_loader, testing_loader
 
+def save_info():
+    loss_path = os.path.join(info_data_dir,'loss.json')
+    iter_path = os.path.join(info_data_dir,'iter.json')
+
+    with open(loss_path,'w') as file:
+        json.dump(learning_rate_list,file)
+    with open(iter_path,'w') as file:
+        json.dump(epoch_list,file)
+    return
+
+def load_info():
+    loss_path = os.path.join(info_data_dir,'loss.json')
+    iter_path = os.path.join(info_data_dir,'iter.json')
+
+    with open(loss_path,'r') as file:
+        l_list = json.load(file)
+    with open(iter_path,'r') as file:
+        e_list = json.load(file)
+    return l_list, e_list
+
 def train_model(training_loader):
+    global epoch_list
+    global learning_rate_list
     if train_from_last_model:
         model = load_model()
+        learning_rate_list, epoch_list = load_info()
         print("Load the exist model and continue")
     else:
         model = SegNet(input_channel,output_channel).cuda()
@@ -99,7 +127,7 @@ def train_model(training_loader):
         epoch_list.append(epoch+1)
         # x_axis_list = []   #graph
         # y_axis_list = []   #graph
-        tqdm.write('epoch = {}'.format(epoch+1))
+        # tqdm.write('epoch = {}'.format(epoch+1))
         for i, batch in enumerate(tqdm(training_loader)):
             # load data
             input_tensor = Variable(batch['camera_5']).cuda()
@@ -119,12 +147,12 @@ def train_model(training_loader):
             count_batch += 1
             torch.cuda.empty_cache()
 
-        # tqdm.close()
         average_loss = loss_sum / count_batch
         learning_rate_list.append(average_loss)
         tqdm.write('{} epoch: loss = {}'.format(epoch+1,average_loss))
         plot_learning_curve(epoch+1)
         save_model(model)
+        save_info()
     return model
 
 def plot_learning_curve(epoch):
@@ -175,7 +203,7 @@ def show_img(input_img,output_img,target_img, index, filename):
     # print("get numpy shape",numpy_img.shape)
     input_numpy_img = np.transpose(input_numpy_img, (2,1,0))
     output_numpy_img = np.transpose(output_numpy_img, (2,1,0))
-    target_numpy_img = np.transpose(target_numpy_img, (2,1,0))
+    target_numpy_img = np.transpose(target_numpy_img, (2,1,0))*255
     # print("numpy max",np.max(numpy_img))
     # print("image numpy shape",numpy_img.shape)
     # print("")

@@ -6,10 +6,10 @@ import torchvision.transforms as transforms
 from PIL import Image
 import numpy as np
 
-# img_size_w = 224
-# img_size_h = 224
-img_size_w = 500
-img_size_h = 154
+img_size_w = 224
+img_size_h = 224
+# img_size_w = 500
+# img_size_h = 154
 
 class StereokDataset(Dataset):
     def __init__(self, transform = transforms.ToTensor(), Training = True , pth = 1):
@@ -77,7 +77,9 @@ class StereokDataset(Dataset):
     
     def load_image(self, path=None):
         raw_image = Image.open(path).convert('RGB')
+        # print("load image size",raw_image.size)
         raw_image = np.transpose(raw_image.resize((img_size_w, img_size_h)), (2,1,0))
+        # print("resize image size",raw_image.shape)
         imx_t = np.array(raw_image, dtype=np.float32) #/255.0
 
         return imx_t

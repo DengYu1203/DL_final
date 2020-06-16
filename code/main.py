@@ -17,14 +17,18 @@ import os
 
 # mode
 train_flag = True   # True for train model, false for load the model to test
-train_from_last_model = False   # True for train a model from the exist file, false for train a new model
+train_from_last_model = True   # True for train a model from the exist file, false for train a new model
 
 # Training parameter
 NUM_EPOCHS = 100
 LEARNING_RATE = 1e-6
-BATCH_SIZE = 8
-img_size_w = 500
-img_size_h = 154
+BATCH_SIZE = 1
+# img_size_w = 500
+# img_size_h = 154
+img_size_w = 224
+img_size_h = 224
+input_channel = 3
+output_channel = 2
 
 # Record the learning curve
 epoch_list = []
@@ -68,7 +72,7 @@ def save_model(model):
 def load_model():
     segnet_save_path = os.path.join(model_dir,'segnet_model.pth')
     # model = torch.load(segnet_save_path)
-    model = SegNet(3,2).cuda()
+    model = SegNet(input_channel,output_channel).cuda()
     model.load_state_dict(torch.load(segnet_save_path))
     return model
 
@@ -83,7 +87,7 @@ def train_model(training_loader):
     if train_from_last_model:
         model = load_model()
     else:
-        model = SegNet(3,3).cuda()
+        model = SegNet(input_channel,output_channel).cuda()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     for epoch in range(NUM_EPOCHS):
         t_start = time.time()
@@ -111,7 +115,9 @@ def train_model(training_loader):
 
             loss_sum += loss
             count_batch += 1
-        tqdm.close()
+            torch.cuda.empty_cache()
+
+        # tqdm.close()
         average_loss = loss_sum / count_batch
         learning_rate_list.append(average_loss)
         print('{} epoch: loss = {}'.format(epoch+1,average_loss))
@@ -142,22 +148,33 @@ def test_model(model,testing_loader):
     for i, data in enumerate(testing_loader):
         input_tensor = Variable(data['camera_5']).cuda()
         target_tensor = Variable(data['fg_mask']).cuda()
+        print("inpur tensor",input_tensor.shape)
+        print("target tensor",target_tensor.shape)
         predicted_tensor, softmaxed_tensor = model(input_tensor)
-        pred_img = predicted_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
-        print(pred_img.shape)
+        print("predict tensor",predicted_tensor.shape)
+        print("softmax tensor",softmaxed_tensor.shape)
+        pred_img = input_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
+        print("predict image",pred_img.shape)
         show_img(torchvision.utils.make_grid(pred_img.detach()),i,'Test')
+        torch.cuda.empty_cache()
     return
 
 def show_img(img, index, filename):
     fig = plt.figure()
     numpy_img = img.cpu().numpy()
-    print(numpy_img.shape)
-    plt.imshow(np.transpose(numpy_img, (2,1,0)))
+    print("get numpy shape",numpy_img.shape)
+    numpy_img = np.transpose(numpy_img, (1,2,0))
+    print("numpy max",np.max(numpy_img))
+    print("image numpy shape",numpy_img.shape)
+    print("")
+    plt.imshow((numpy_img).astype(np.uint8))
     save_path = os.path.join(test_data_dir,filename+'_'+str(index)+'.png')
     plt.axis("off")
     fig.savefig(save_path,dpi=fig.dpi,bbox_inches='tight',pad_inches=0.0)
     plt.clf()
     plt.close(fig)
+    torch.cuda.empty_cache()
+
     return
 
 if __name__ == '__main__':

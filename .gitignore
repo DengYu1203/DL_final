@@ -1,3 +1,5 @@
 Stereo/testing/*
 Stereo/training/*
 output/model/*.pth
+output/model/*
+output/test/*

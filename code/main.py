@@ -23,7 +23,7 @@ train_from_last_model = False   # True for train a model from the exist file, fa
 # Training parameter
 NUM_EPOCHS = 100
 LEARNING_RATE = 1e-6
-BATCH_SIZE = 1
+BATCH_SIZE = 8
 # img_size_w = 500
 # img_size_h = 154
 img_size_w = 224
@@ -89,6 +89,8 @@ def load_data():
     return training_loader, testing_loader
 
 def save_info():
+    global epoch_list
+    global learning_rate_list
     loss_path = os.path.join(info_data_dir,'loss.json')
     iter_path = os.path.join(info_data_dir,'iter.json')
 
@@ -148,7 +150,7 @@ def train_model(training_loader):
             torch.cuda.empty_cache()
 
         average_loss = loss_sum / count_batch
-        learning_rate_list.append(average_loss)
+        learning_rate_list.append(float(average_loss))
         tqdm.write('{} epoch: loss = {}'.format(epoch+1,average_loss))
         plot_learning_curve(epoch+1)
         save_model(model)
@@ -184,11 +186,11 @@ def test_model(model,testing_loader):
         predicted_tensor, softmaxed_tensor = model(input_tensor)
         # print("predict tensor",predicted_tensor.shape)
         # print("softmax tensor",softmaxed_tensor.shape)
-        pred_img = predicted_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
+        pred_img = predicted_tensor.view(1,-1,img_size_h,img_size_w)
         # print("predict image",pred_img.shape)
         # show_img(torchvision.utils.make_grid(pred_img.detach()),i,'Test')
-        input_img = input_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
-        target_img = target_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
+        input_img = input_tensor.view(1,-1,img_size_h,img_size_w)
+        target_img = target_tensor.view(1,-1,img_size_h,img_size_w)
         show_img(torchvision.utils.make_grid(input_img.detach()),torchvision.utils.make_grid(pred_img.detach()),torchvision.utils.make_grid(target_img.detach()),i,'Test')
 
         torch.cuda.empty_cache()

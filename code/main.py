@@ -16,8 +16,8 @@ from segnet import SegNet
 import os
 
 # mode
-train_flag = True   # True for train model, false for load the model to test
-train_from_last_model = True   # True for train a model from the exist file, false for train a new model
+train_flag = False   # True for train model, false for load the model to test
+train_from_last_model = False   # True for train a model from the exist file, false for train a new model
 
 # Training parameter
 NUM_EPOCHS = 100
@@ -145,29 +145,38 @@ def plot_learning_curve(epoch):
     return
 
 def test_model(model,testing_loader):
-    for i, data in enumerate(testing_loader):
+    print("Start to produce image:")
+    for i, data in enumerate(tqdm(testing_loader)):
         input_tensor = Variable(data['camera_5']).cuda()
         target_tensor = Variable(data['fg_mask']).cuda()
-        print("inpur tensor",input_tensor.shape)
-        print("target tensor",target_tensor.shape)
+        # print("inpur tensor",input_tensor.shape)
+        # print("target tensor",target_tensor.shape)
         predicted_tensor, softmaxed_tensor = model(input_tensor)
-        print("predict tensor",predicted_tensor.shape)
-        print("softmax tensor",softmaxed_tensor.shape)
-        pred_img = input_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
-        print("predict image",pred_img.shape)
+        # print("predict tensor",predicted_tensor.shape)
+        # print("softmax tensor",softmaxed_tensor.shape)
+        pred_img = predicted_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
+        # print("predict image",pred_img.shape)
         show_img(torchvision.utils.make_grid(pred_img.detach()),i,'Test')
+        input_img = input_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
+        show_img(torchvision.utils.make_grid(input_img.detach()),i,'Input')
+
         torch.cuda.empty_cache()
     return
 
 def show_img(img, index, filename):
     fig = plt.figure()
     numpy_img = img.cpu().numpy()
-    print("get numpy shape",numpy_img.shape)
-    numpy_img = np.transpose(numpy_img, (1,2,0))
-    print("numpy max",np.max(numpy_img))
-    print("image numpy shape",numpy_img.shape)
-    print("")
-    plt.imshow((numpy_img).astype(np.uint8))
+    # print("get numpy shape",numpy_img.shape)
+    numpy_img = np.transpose(numpy_img, (2,1,0))
+    # print("numpy max",np.max(numpy_img))
+    # print("image numpy shape",numpy_img.shape)
+    # print("")
+    if filename == 'Input':
+        plt.imshow((numpy_img).astype(np.uint8))
+    else:
+        f_mask = numpy_img[:,:,0]
+        b_mask = numpy_img[:,:,1]
+        plt.imshow((f_mask).astype(np.uint8))
     save_path = os.path.join(test_data_dir,filename+'_'+str(index)+'.png')
     plt.axis("off")
     fig.savefig(save_path,dpi=fig.dpi,bbox_inches='tight',pad_inches=0.0)

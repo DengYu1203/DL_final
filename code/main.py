@@ -18,7 +18,7 @@ import json
 
 # mode
 train_flag = True   # True for train model, false for load the model to test
-train_from_last_model = False   # True for train a model from the exist file, false for train a new model
+train_from_last_model = True   # True for train a model from the exist file, false for train a new model
 
 # Training parameter
 NUM_EPOCHS = 100
@@ -83,7 +83,7 @@ def load_model():
 
 def load_data():
     training_dataset = Mulitple_Training_Dataset()
-    training_loader = DataLoader(training_dataset, batch_size=BATCH_SIZE, shuffle= True, num_workers=1,pin_memory=torch.cuda.is_available())
+    training_loader = DataLoader(training_dataset, batch_size=BATCH_SIZE, shuffle= True, num_workers=2,pin_memory=torch.cuda.is_available())
     testing_dataset = StereokDataset(Training=False)
     testing_loader = DataLoader(testing_dataset, batch_size=1, shuffle= False)
     return training_loader, testing_loader
@@ -148,18 +148,18 @@ def train_model(training_loader):
             loss_sum += loss
             count_batch += 1
             torch.cuda.empty_cache()
-
+        tqdm().clear()
         average_loss = loss_sum / count_batch
         learning_rate_list.append(float(average_loss))
         tqdm.write('{} epoch: loss = {}'.format(epoch+1,average_loss))
-        plot_learning_curve(epoch+1)
+        plot_learning_curve(len(epoch_list))
         save_model(model)
         save_info()
     return model
 
 def plot_learning_curve(epoch):
     fig = plt.figure('Learning Curve ('+str(epoch)+' epoch)',figsize=(10,8))
-    plt.plot(epoch_list,learning_rate_list,'-b',label='train')
+    plt.plot(learning_rate_list,'-b',label='train')
     plt.title('Learning Curve ('+str(epoch)+' epoch)',fontsize=18)
     plt.xlabel('Epoch number',fontsize=14)
     plt.ylabel('Cross entropy',fontsize=14)
@@ -240,14 +240,16 @@ def show_img(input_img,output_img,target_img, index, filename):
 
 if __name__ == '__main__':
     print("Loading Data")
-    training_loader, testing_loader = load_data()
     if train_flag:
         print("Start to train the model")
+        training_loader, testing_loader = load_data()
         model = train_model(training_loader)
         print("Finish {} epoch training".format(NUM_EPOCHS))
     else:
         print("Loading model")
         model = load_model()
+        BATCH_SIZE = 1
+        training_loader, testing_loader = load_data()
     print("Set the model to eval mode")
     model.eval()    # set for test
     test_model(model,training_loader)

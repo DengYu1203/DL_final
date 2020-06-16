@@ -16,8 +16,8 @@ from segnet import SegNet
 import os
 
 # mode
-train_flag = False   # True for train model, false for load the model to test
-train_from_last_model = False   # True for train a model from the exist file, false for train a new model
+train_flag = True   # True for train model, false for load the model to test
+train_from_last_model = True   # True for train a model from the exist file, false for train a new model
 
 # Training parameter
 NUM_EPOCHS = 100
@@ -86,8 +86,10 @@ def load_data():
 def train_model(training_loader):
     if train_from_last_model:
         model = load_model()
+        print("Load the exist model and continue")
     else:
         model = SegNet(input_channel,output_channel).cuda()
+        print("Train a new model")
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     for epoch in range(NUM_EPOCHS):
         t_start = time.time()
@@ -97,7 +99,7 @@ def train_model(training_loader):
         epoch_list.append(epoch+1)
         # x_axis_list = []   #graph
         # y_axis_list = []   #graph
-        print('epoch = {}'.format(epoch+1))
+        tqdm.write('epoch = {}'.format(epoch+1))
         for i, batch in enumerate(tqdm(training_loader)):
             # load data
             input_tensor = Variable(batch['camera_5']).cuda()
@@ -120,7 +122,7 @@ def train_model(training_loader):
         # tqdm.close()
         average_loss = loss_sum / count_batch
         learning_rate_list.append(average_loss)
-        print('{} epoch: loss = {}'.format(epoch+1,average_loss))
+        tqdm.write('{} epoch: loss = {}'.format(epoch+1,average_loss))
         plot_learning_curve(epoch+1)
         save_model(model)
     return model
@@ -156,29 +158,49 @@ def test_model(model,testing_loader):
         # print("softmax tensor",softmaxed_tensor.shape)
         pred_img = predicted_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
         # print("predict image",pred_img.shape)
-        show_img(torchvision.utils.make_grid(pred_img.detach()),i,'Test')
+        # show_img(torchvision.utils.make_grid(pred_img.detach()),i,'Test')
         input_img = input_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
-        show_img(torchvision.utils.make_grid(input_img.detach()),i,'Input')
+        target_img = target_tensor.view(BATCH_SIZE,-1,img_size_h,img_size_w)
+        show_img(torchvision.utils.make_grid(input_img.detach()),torchvision.utils.make_grid(pred_img.detach()),torchvision.utils.make_grid(target_img.detach()),i,'Test')
 
         torch.cuda.empty_cache()
     return
 
-def show_img(img, index, filename):
-    fig = plt.figure()
-    numpy_img = img.cpu().numpy()
+def show_img(input_img,output_img,target_img, index, filename):
+    # fig = plt.figure()
+    fig,(ax1, ax2, ax3, ax4) = plt.subplots(1,4,figsize=(20,8))
+    input_numpy_img = input_img.cpu().numpy()
+    output_numpy_img = output_img.cpu().numpy()
+    target_numpy_img = target_img.cpu().numpy()
     # print("get numpy shape",numpy_img.shape)
-    numpy_img = np.transpose(numpy_img, (2,1,0))
+    input_numpy_img = np.transpose(input_numpy_img, (2,1,0))
+    output_numpy_img = np.transpose(output_numpy_img, (2,1,0))
+    target_numpy_img = np.transpose(target_numpy_img, (2,1,0))
     # print("numpy max",np.max(numpy_img))
     # print("image numpy shape",numpy_img.shape)
     # print("")
-    if filename == 'Input':
-        plt.imshow((numpy_img).astype(np.uint8))
-    else:
-        f_mask = numpy_img[:,:,0]
-        b_mask = numpy_img[:,:,1]
-        plt.imshow((f_mask).astype(np.uint8))
+    # if filename == 'Input':
+    #     plt.imshow((numpy_img).astype(np.uint8))
+    # else:
+    #     f_mask = numpy_img[:,:,0]
+    #     b_mask = numpy_img[:,:,1]
+    #     plt.imshow((f_mask).astype(np.uint8))
+    ax1.set_title("Input image",fontsize=18)
+    ax1.imshow(input_numpy_img.astype(np.uint8))
+    f_mask = output_numpy_img[:,:,0]
+    b_mask = output_numpy_img[:,:,1]
+    ax2.set_title("Output image(f_mask)",fontsize=18)
+    ax2.imshow((f_mask).astype(np.uint8))
+    ax3.set_title("Output image(b_mask)",fontsize=18)
+    ax3.imshow((b_mask).astype(np.uint8))
+    ax4.set_title("Target image",fontsize=18)
+    ax4.imshow(target_numpy_img.astype(np.uint8))
+
     save_path = os.path.join(test_data_dir,filename+'_'+str(index)+'.png')
-    plt.axis("off")
+    ax1.axis("off")
+    ax2.axis("off")
+    ax3.axis("off")
+    ax4.axis("off")
     fig.savefig(save_path,dpi=fig.dpi,bbox_inches='tight',pad_inches=0.0)
     plt.clf()
     plt.close(fig)

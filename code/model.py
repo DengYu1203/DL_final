@@ -3,6 +3,8 @@
 
 import sys
 
+sys.path.append('../')
+
 import os
 import torch
 import torch.nn as nn
@@ -14,22 +16,21 @@ from PIL import Image
 import math
 import torch.utils.model_zoo as model_zoo
 
-
 class AM(nn.Module):
     
     def __init__(self, input_channel):
         
         super(AM, self).__init__() 
         
-        self.conv_dilation_1_x_32  = torch.nn.Conv2d(input_channel, 32, kernel_size=3, padding=1, dilation=1)
+        self.conv_dilation_1_x_32 = torch.nn.Conv2d(input_channel, 32, kernel_size=3, padding=1, dilation=1)
         self.conv_dilation_1_32_32 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=1, dilation=1)
         self.conv_dilation_2_32_32 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=2, dilation=2)
         self.conv_dilation_4_32_32 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=4, dilation=4)
         self.conv_dilation_8_32_32 = torch.nn.Conv2d(32, 32, kernel_size=3, padding=8, dilation=8)
-        self.conv_1_32_32          = torch.nn.Conv2d(32, 32, kernel_size=1)
-        self.conv_1_32_128         = torch.nn.Conv2d(32, 128, kernel_size=1)
-        self.prelu                 = nn.PReLU()
-        self.bn_128                = nn.BatchNorm2d(128)
+        self.conv_1_32_32 = torch.nn.Conv2d(32, 32, kernel_size=1)
+        self.conv_1_32_128 = torch.nn.Conv2d(32, 128, kernel_size=1)
+        self.prelu = nn.PReLU()
+        self.bn_128 = nn.BatchNorm2d(128)
     
     def forward(self, x):
         x = self.conv_dilation_1_x_32(x)
@@ -203,6 +204,7 @@ class UpScale(nn.Module):
         )
         
     def forward(self, x):
+        
         x = self.conv(x)
         x = self.upsample_1(x)
         
@@ -210,41 +212,48 @@ class UpScale(nn.Module):
 
 class FAB_AMNet(nn.Module):
     
-    def __init__(self, pre_train=True):
+    def __init__(self):
         
         super(FAB_AMNet, self).__init__() 
         
         self.resnet34 = ResNet34(BasicBlock)
         self.AM_128 = AM(128)
+        self.AM_128_1 = AM(128)
+        self.AM_128_2 = AM(128)
         self.AM_3 = AM(3)
-        self.UpScale_256 = UpScale(256)
+        self.UpScale_256_1 = UpScale(256)
+        self.UpScale_256_2 = UpScale(256)
+        self.UpScale_256_3 = UpScale(256)
         self.UpDim = torch.nn.Conv2d(3, 128, kernel_size=1)
         self.ReduceDim = nn.Sequential(
             nn.Conv2d(128, 1, kernel_size=3,padding=1, bias=False),
             nn.PReLU(),
             nn.BatchNorm2d(1)
         )
+        self.sigmoid = nn.Sigmoid()
         
-        if pre_train:
-            self.resnet34.load_state_dict(model_zoo.load_url('https://download.pytorch.org/models/resnet34-333f7ec4.pth'))
+        self.resnet34.load_state_dict(model_zoo.load_url('https://download.pytorch.org/models/resnet34-333f7ec4.pth'))
         
     def forward(self, x, y):
+        
         x = self.resnet34(x)
         x = self.AM_128(x)
         y = self.resnet34(y)
         y = self.AM_128(y)
         z = torch.cat((x,y),dim = 1)
-        fore = self.UpScale_256(z)
-        back = self.UpScale_256(z)
-        middle = self.UpScale_256(z)
+        fore = self.UpScale_256_1(z)
+        fore_o = self.sigmoid(fore)
+        back = self.UpScale_256_2(z)
+        back_o = self.sigmoid(back)
+        middle = self.UpScale_256_3(z)
         
         D1 = torch.cat((fore,middle,back),dim = 1)
         
         D2 = self.AM_3(D1)
         D1 = self.UpDim(D1)
         
-        D2 = self.AM_128(D1+D2)
-        D2 = self.AM_128(D1+D2)
+        D2 = self.AM_128_1(D1+D2)
+        D2 = self.AM_128_2(D1+D2)
         disparity = self.ReduceDim(D2)
         
-        return fore, back, disparity
+        return fore_o, back_o, disparity

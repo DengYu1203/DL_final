@@ -6,15 +6,15 @@ from PIL import Image
 
 
 class StereokDataset(Dataset):
-    def __init__(self, transform = transforms.ToTensor(), Training = True , pth = 1):
+    def __init__(self, transform_D = None, transform = transforms.ToTensor(), Training = True , pth = 1, root_path = "../Stereo"):
         self.Training = Training
         if Training == True:
-            self.path = '../Stereo/training/stereo_train_00{}/'.format(pth)
+            self.path = os.path.join(root_path, "training/stereo_train_00{}/".format(pth))
         else:
-            self.path = '../Stereo/testing/test/'
-        self.filenames = os.listdir(self.path+'camera_5/')
+            self.path = os.path.join(root_path, "testing/test/")
+        self.filenames = os.listdir(os.path.join(self.path, 'camera_5/'))
         self.transform = transform
-        
+        self.transform_D = transform_D
         #self.a
         
     def __getitem__(self, index):
@@ -27,6 +27,8 @@ class StereokDataset(Dataset):
         if self.Training == True:
             disparity = Image.open( (self.path+ 'disparity/'+ self.filenames[index]).replace('jpg', 'png') )
             disparity = self.transform(disparity)
+            disparity = disparity.float()
+            disparity = self.transform_D(disparity)
             fg_mask = Image.open( (self.path+ 'fg_mask/'+ self.filenames[index]).replace('jpg', 'png') ).convert('L')
             fg_mask = self.transform(fg_mask)
             bg_mask = Image.open( (self.path+ 'bg_mask/'+ self.filenames[index]).replace('jpg', 'png') ).convert('L')

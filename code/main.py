@@ -148,7 +148,7 @@ def train_model(training_loader):
             loss_sum += loss
             count_batch += 1
             torch.cuda.empty_cache()
-        tqdm().clear()
+        # tqdm().clear()
         average_loss = loss_sum / count_batch
         learning_rate_list.append(float(average_loss))
         tqdm.write('{} epoch: loss = {}'.format(epoch+1,average_loss))

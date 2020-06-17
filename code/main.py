@@ -14,8 +14,8 @@ from Dataset import *
 from model import *
 
 # Train setting
-BATCH_SIZE = 1
-EPOCH      = 5
+BATCH_SIZE = 8
+EPOCH      = 100
 SNAPSHOT   = 1
 Scale      = 0.2
 MEAN_D     = 32758  # use evalNormalParameter(dataset)
@@ -87,14 +87,14 @@ def main():
         transforms.ToTensor()
     ])
     transform_D = transforms.Compose([
-        transforms.Normalize(MEAN_D, STD_D)
+        transforms.Normalize((MEAN_D,), (STD_D,))
     ])
 
     dataset = Training_Dataset(transform_D, transform, root_path)
 
     #mean, std = evalNormalParameter(dataset) # used if you want to known how to normalize data
 
-    model = FAB_AMNet()
+    model = FAB_AMNet().cuda()
 
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle= True)
 
@@ -103,23 +103,19 @@ def main():
     criterion_BCE = nn.BCELoss()
     criterion_MSE   = nn.MSELoss()
 
-    transform_D = transforms.Compose([
-        transforms.Normalize(MEAN_D, STD_D)
-    ])
-
     for epoch in range(EPOCH):
         
         for i, data in enumerate(dataloader, 0):
-            camera_5 = F.interpolate(data[0],scale_factor=Scale)
-            camera_6 = F.interpolate(data[1],scale_factor=Scale)
+            camera_5 = F.interpolate(data[0],scale_factor=Scale).to(device)
+            camera_6 = F.interpolate(data[1],scale_factor=Scale).to(device)
 
             fore, back, disparity = model(camera_5, camera_6)
             
-            fore_label      = F.interpolate(data[3],size=(fore.shape[2],fore.shape[3]))
-            back_label      = F.interpolate(data[4],size=(back.shape[2],back.shape[3]))
-            disparity_label = F.interpolate(data[4],size=(disparity.shape[2],disparity.shape[3]))
+            fore_label      = F.interpolate(data[3],size=(fore.shape[2],fore.shape[3])).to(device)
+            back_label      = F.interpolate(data[4],size=(back.shape[2],back.shape[3])).to(device)
+            disparity_label = F.interpolate(data[4],size=(disparity.shape[2],disparity.shape[3])).to(device)
 
-            loss_fore = criterion_BCE(fore, fore_label)
+            loss_fore = criterion_BCE(fore, fore_label))
             loss_back = criterion_BCE(back, back_label)
             loss_fg   = criterion_MSE(fore, back)
             loss_D    = criterion_MSE(disparity, disparity_label)
@@ -136,8 +132,7 @@ def main():
             
         if (epoch + 1)%SNAPSHOT:
             print("epoch: %d, checkpoint!!")
-            torch.save(model.state_dict(), os.path.join(savefolder, "FAB_AMNet_epoch_%d"%(epoch)))
-    
+            torch.save(model.state_dict(), os.path.join(savefolder, "FAB_AMNet_epoch_%d"%(epoch)))  
     
 if __name__ == "__main__":
     main()

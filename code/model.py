@@ -3,13 +3,10 @@
 
 import sys
 
-sys.path.append('../')
-
 import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import torchvision.models as models
 from PIL import Image

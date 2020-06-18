@@ -17,7 +17,7 @@ import os
 import json
 
 # mode
-train_flag = True   # True for train model, false for load the model to test
+train_flag = False   # True for train model, false for load the model to test
 train_from_last_model = True   # True for train a model from the exist file, false for train a new model
 
 # Training parameter
